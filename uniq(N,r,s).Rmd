@@ -1,0 +1,60 @@
+---
+title: "Theoretical Probabilities"
+author: "Steph"
+date: "2/7/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(parallel)
+library(profvis)
+library(data.table)
+library(prodlim)
+library(dplyr)
+library(sqldf)
+library(DBI)
+library(RSQLite)
+library(readxl)
+library(pbmcapply)
+library(gtools)
+```
+
+## Finding duplicate profiles in a population of size N 
+
+```{r}
+source("Functions/uniq(N,r,s).R")
+```
+
+```{r}
+nsim <- 10^6
+
+N <- 10^4
+r <- 6
+s <- 10 
+
+n.core <- 8
+tmp <- vector("list", nsim)
+
+time <- system.time({
+  results <- unlist(pbmclapply (tmp, FUN = function(y) {
+  uniq(N,r,s) },
+  mc.cores = n.core))
+})
+
+(sum(results == 0))/length(results)
+## dupprof(N) returns the number of dups that are found, we are interested in no dups
+## length(results) == nsim iff all cores return results, but if they dont then this acconts for it 
+
+closeAllConnections()
+
+## this part is using the formula I came up with to verify the sim 
+op <- vector(length=N)
+for(m in 1:N){
+op[m] <- (1-m/10^6)
+}
+prod(op)
+```

@@ -1,0 +1,45 @@
+---
+title: "degmatch"
+author: "Steph"
+date: "6/13/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+source("Functions/degmatch.R")
+```
+
+```{r}
+nsims <- 100
+N <- 1000000 ## bigger pop bc we are only comparing one profile now
+r <- 8
+s <- 12
+
+p <- 1
+nmatch <- 6
+ndegrade <- 3
+
+n.core <- 24
+
+tmp <- vector("list", nsims)
+
+time <- system.time({
+  results <- unlist(pbmclapply (tmp, FUN = function(y){
+                  degmatch(N,p,r,s, nmatch, ndegrade)},
+                  mc.cores = n.core))
+})
+
+sink(file="output2.txt", append = TRUE)
+v <- c("p=", p)
+v
+sum(results)/length(results)
+paste(results, sep="", collapse = ", ")
+
+
+
+closeAllConnections()
+```

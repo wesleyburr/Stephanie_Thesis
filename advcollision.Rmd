@@ -1,0 +1,98 @@
+---
+title: "Collisionsadv"
+author: "Steph"
+date: "5/21/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(parallel)
+library(profvis)
+library(data.table)
+library(prodlim)
+library(dplyr)
+library(sqldf)
+library(DBI)
+library(RSQLite)
+library(readxl)
+library(pbmcapply)
+```
+
+```{r}
+## Read in functions
+source("Functions/popconfigure.R")
+source("Functions/partjoin.R")
+source("Functions/popdt.R")
+source("Functions/advcollision.R")
+#Read in excel file dataframe 
+PopSource <- read.csv("Pop_Source.csv", header=FALSE, stringsAsFactors=FALSE)
+PopSource <- popconfigure(PopSource)
+```
+
+
+# advcollisions(population, p, nmatch, Popsource)
+# wont run unless N > 1000, numeric. 
+# Needs Popsource to be dataframe w 26 cols. 
+# uses partjoin()
+
+```{r}
+advcollision <- function(N, PopSource,p,nmatch){
+  stopifnot(N > 100, is.numeric(N), is.data.frame(PopSource),
+            dim(PopSource)[2] == 26, !is.null(PopSource))
+  
+  population <- popdt(N, PopSource)
+  
+  
+  offenders <- sample_n(population, N*p, replace = FALSE)
+  
+  ## finding the non-offenders -- population-offenders
+  dB_1 <- dbConnect(RSQLite::SQLite(), ":memory:") ## "" 
+  dbWriteTable(dB_1, "population", population, overwrite = TRUE)
+  dbWriteTable(dB_1,"offenders", offenders, overwrite=TRUE)
+  nonoffenders <- dbGetQuery(dB_1, "SELECT *
+                    FROM population 
+                    WHERE ID NOT IN
+                              (SELECT ID
+                              FROM offenders)")
+  
+  ## probability = # of false detects 
+  false.matches <- partjoin(DB1 = offenders, DB2 = offenders, nmatch)
+  
+  return(false.matches)
+}
+
+
+
+```
+
+
+```{r}
+nsims <- 1
+N <- 60000
+p <- 1
+nmatch <- 9
+n.core <- 24
+
+tmp <- vector("list", nsims)
+
+time <- system.time({
+  results <- unlist(pbmclapply (tmp, FUN = function(y){
+                  advcollision(N, PopSource,p,nmatch)},
+                  mc.cores = n.core))
+})
+
+
+results
+sum(results)/length(results)
+
+
+closeAllConnections()
+```
+
+
+
+

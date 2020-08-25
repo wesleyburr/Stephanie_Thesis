@@ -1,0 +1,75 @@
+---
+title: "BALDING96_3"
+author: "Steph"
+date: "4/16/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(parallel)
+library(profvis)
+library(data.table)
+library(prodlim)
+library(dplyr)
+library(sqldf)
+library(DBI)
+library(RSQLite)
+library(readxl)
+library(pbmcapply)
+```
+
+
+```{r}
+source("Functions/snsmatch.R")
+```
+
+```{r, doSims}
+nsim <- 10^5
+
+tmp <- vector("list", nsim)
+n_core <- 14
+
+N <- 10^6
+p <- 0.1
+m <- 10
+r <- 6
+s <- 10
+
+s.time <- system.time({
+  result <- unlist(pbmclapply(tmp, FUN = function(y) { 
+                             snsmatch(N, p, m, r, s) },
+                                  mc.cores = n_core)) 
+  
+})
+YesSim <- sum(result)
+YesSim/length(result)
+length(result)/YesSim
+s.time
+
+closeAllConnections()
+```
+
+
+### BALDING3 RESULTS### 
+
+N = 1e+07, p = 0.1, m = 10 
+## i think if we ran this with a smaller pop it would give a more definitive result
+
+n_sim = 10,     # results = 100      YesSim/n_sim = 1      time elapsed = 12104.982  user time = 4.283
+n_sim = 100,    # results = 1000     YesSim/n_sim = 1     time elapsed = user time = 
+n_sim = 1000,   # results = 10000    YesSim/n_sim = 0.9997   time elapsed = 82482.572 user time = 19.927
+n_sim = 10000,  # results = 100000   YesSim/n_sim =     time elapsed =  user time = 
+n_sim = 100000, # results = 1000000  YesSim/n_sim =     time elapsed =  user time = 
+
+
+N = 1e+06, p = 0.1, m = 10, r = 6, s = 10
+n_sim = 10,     # results = 100      YesSim/n_sim = 0.54   Inverse = 1.85185   
+n_sim = 100,    # results = 1000     YesSim/n_sim = 0.61  Inverse =  1.639344   
+n_sim = 1000,   # results = 10000    YesSim/n_sim = 0.5916 Inverse =  1.690331 
+n_sim = 10000,  # results = 100000   YesSim/n_sim = 0.59609 Inverse =   1.677599   
+n_sim = 100000, # results = 1000000  YesSim/n_sim = 0.593714 Inverse =   1.684313

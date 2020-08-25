@@ -1,0 +1,20 @@
+---
+title: "popsource"
+author: "Steph"
+date: "6/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Read in excel file dataframe 
+PopSource <- read.csv("Pop_Source.csv", header=FALSE, stringsAsFactors=FALSE)
+source("Functions/popconfigure.R")
+source("Functions/population.R")
+p <- popconfigure(PopSource)
+
+```
+

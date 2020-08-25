@@ -1,0 +1,245 @@
+---
+title: "Population"
+author: "Steph"
+date: "5/21/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(parallel)
+library(profvis)
+library(data.table)
+library(prodlim)
+library(dplyr)
+library(sqldf)
+library(DBI)
+library(RSQLite)
+library(readxl)
+library(pbmcapply)
+```
+
+```{r}
+#Read in excel file dataframe 
+PopSource <- read.csv("Pop_Source.csv", header=FALSE, stringsAsFactors=FALSE)
+names(PopSource) <- PopSource[1, ]
+PopSource <- PopSource[-1, ]
+for(j in seq(2, 26, 2)) {
+  PopSource[, j] <- as.numeric(PopSource[, j])
+  PopSource[, j] <- PopSource[, j] / sum(PopSource[, j], na.rm = TRUE)
+}
+```
+
+```{r}
+
+N <- 1000
+p <- 0.1
+PopSource <- PopSource
+n_degrade <- 0
+n_match <- 13
+
+simsadv <- function(N, p, PopSource = NULL, n_match, n_degrade) {
+  stopifnot(N > 1000, is.numeric(n_pop), is.data.frame(PopSource),
+            dim(PopSource)[2] == 26, !is.null(PopSource), n_degrade < 13)
+  
+  popdt <- data.frame(ID = 1:N, CSF1PO = NA, FGA = NA, TH01 = NA, 
+                      TPOX = NA, VWA = NA, D3S1358 = NA,
+                      D5S818 = NA, D7S820 = NA, D8S1179 = NA,
+                      D13S317 = NA, D16S539 = NA, D18S51 = NA,
+                      D21S11 = NA)
+  
+  ## generating N profiles 
+  for(j in 1:13) {
+    allele_j <- PopSource[, (2*j-1):(2*j)]
+    allele_j <- allele_j[1:max(which(!is.na(allele_j[, 2]))), ]
+    tmp_df <- data.frame(A1 = as.character( sample(allele_j[[1]], N, 
+                                                   replace = TRUE, 
+                                                   prob = allele_j[[2]]),
+                                            digits = 1 ),
+                         A2 = as.character( sample(allele_j[[1]], N, 
+                                                   replace = TRUE, 
+                                                   prob = allele_j[[2]]),
+                                            digits = 1 )
+    )
+    popdt[, j+1] <- apply(tmp_df, MAR = 1, FUN = function(x) { 
+      paste(x, collapse = ", ") 
+    }) 
+  }
+
+    offenders <- sample_n(popdt, N*p, replace = FALSE)  ## offenders is randomly chosen from the population, not just the first p percent. 
+  nonoffenders <- popdt[!(apply(popdt, 1, toString) %in% apply(offenders, 1, toString)), ] # populuation - offenders
+
+  orig <- (sample_n(popdt, 1))   # data.table function
+  
+  ############## DEGRADATION SECTION ####################################################################
+  
+  if(n_degrade == 0){
+    cs_data_sample <- orig;
+  } else if (1<= n_degrade & n_degrade<=12){
+    degrade <- sample(orig[, which(names(orig) != "ID")], n_degrade)
+    cs_data1 <- orig[, -which(names(orig) %in% names(degrade))]
+    cs_data2<- data.frame(matrix(NA, nrow = 1, ncol = n_degrade))
+    colnames(cs_data2) <- c(names(degrade))
+    cs_data_sample <- cbind(cs_data1, cs_data2);
+  } else {
+    cs_data_sample <- ("Not valid entry")
+  }
+  
+  #########################################################################
+  
+  dB_1 <- dbConnect(RSQLite::SQLite(), ":memory:") ## "" 
+  dbWriteTable(dB_1, "cs_data_sample", cs_data_sample)
+  dbWriteTable(dB_1,"offenders", offenders, overwrite=TRUE)
+  
+  cs <- dbGetQuery(dB_1, paste0("SELECT * FROM cs_data_sample"))
+  dbWriteTable(dB_1, "cs", cs, overwrite=TRUE)
+  
+  
+  CSF1PO.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.CSF1PO, IFNULL(cs.CSF1PO, dt.CSF1PO) AS csCSF1PO
+                             FROM offenders AS dt
+                             INNER JOIN cs
+                             ON dt.CSF1PO = csCSF1PO")
+  
+  FGA.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.FGA, IFNULL(cs.FGA, dt.FGA) AS csFGA
+                          FROM offenders AS dt
+                          INNER JOIN cs
+                          ON dt.FGA = csFGA")
+  
+  TH01.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.TH01, IFNULL(cs.TH01, dt.TH01) AS csTH01
+                           FROM offenders AS dt
+                           INNER JOIN cs
+                           ON dt.TH01 = csTH01")
+  
+  TPOX.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.TPOX, IFNULL(cs.TPOX, dt.TPOX) AS csTPOX
+                           FROM offenders AS dt
+                           INNER JOIN cs
+                           ON dt.TPOX = csTPOX")
+  
+  VWA.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.VWA, IFNULL(cs.VWA, dt.VWA) AS csVWA
+                          FROM offenders AS dt
+                          INNER JOIN cs
+                          ON dt.VWA = csVWA")
+  
+  D3S1358.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.D3S1358, IFNULL(cs.D3S1358, dt.D3S1358) AS csD3S1358
+                              FROM offenders AS dt
+                              INNER JOIN cs
+                              ON dt.D3S1358 = csD3S1358")
+  
+  D5S818.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.D5S818, IFNULL(cs.D5S818, dt.D5S818) AS csD5S818
+                             FROM offenders AS dt
+                             INNER JOIN cs
+                             ON dt.D5S818 = csD5S818")
+  
+  D7S820.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.D7S820, IFNULL(cs.D7S820, dt.D7S820) AS csD7S820
+                             FROM offenders AS dt
+                             INNER JOIN cs
+                             ON dt.D7S820 = csD7S820")
+  
+  D8S1179.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.D8S1179, IFNULL(cs.D8S1179, dt.D8S1179) AS csD8S1179
+                              FROM offenders AS dt
+                              INNER JOIN cs
+                              ON dt.D8S1179 = csD8S1179")
+  
+  D13S317.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.D13S317, IFNULL(cs.D13S317, dt.D13S317) AS csD13S317
+                              FROM offenders AS dt
+                              INNER JOIN cs
+                              ON dt.D13S317 = csD13S317")
+  
+  D16S539.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.D16S539, IFNULL(cs.D16S539, dt.D16S539) AS csD16S539
+                              FROM offenders AS dt
+                              INNER JOIN cs
+                              ON dt.D16S539 = csD16S539")
+  
+  D18S51.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.D18S51, IFNULL(cs.D18S51, dt.D18S51) AS csD18S51
+                             FROM offenders AS dt
+                             INNER JOIN cs
+                             ON dt.D18S51 = csD18S51")
+  
+  D21S11.match <- dbGetQuery(dB_1, "SELECT dt.ID, dt.D21S11, IFNULL(cs.D21S11, dt.D21S11) AS csD21S11
+                             FROM offenderse AS dt
+                             INNER JOIN cs
+                             ON dt.D21S11 = csD21S11")
+  
+  # everytime an ID number appears in this database, it counts as one loci that matches the crime scene sample 
+  dbWriteTable(dB_1, "csf1po", CSF1PO.match, overwrite=TRUE)
+  dbWriteTable(dB_1, "fga", FGA.match, overwrite=TRUE)
+  dbWriteTable(dB_1, "th01", TH01.match, overwrite=TRUE)
+  dbWriteTable(dB_1, "tpox", TPOX.match, overwrite=TRUE)
+  dbWriteTable(dB_1, "vwa", VWA.match, overwrite=TRUE)
+  dbWriteTable(dB_1, "d3s1358", D3S1358.match, overwrite=TRUE)
+  dbWriteTable(dB_1, "d5s818", D5S818.match,overwrite=TRUE)
+  dbWriteTable(dB_1, "d7s820", D7S820.match, overwrite=TRUE)
+  dbWriteTable(dB_1, "d8s1179", D8S1179.match, overwrite=TRUE)
+  dbWriteTable(dB_1, "d13s317", D13S317.match, overwrite=TRUE)
+  dbWriteTable(dB_1, "d16s539", D16S539.match, overwrite=TRUE)
+  dbWriteTable(dB_1, "d18s51", D18S51.match, overwrite=TRUE)
+  dbWriteTable(dB_1, "d21s11", D21S11.match, overwrite=TRUE)
+  
+  largedb <- dbGetQuery(dB_1, "
+                        SELECT csf1po.ID FROM csf1po
+                        UNION ALL
+                        SELECT fga.ID FROM fga
+                        UNION ALL 
+                        SELECT th01.ID FROM th01
+                        UNION ALL
+                        SELECT tpox.ID FROM tpox
+                        UNION ALL
+                        SELECT vwa.ID FROM vwa
+                        UNION ALL 
+                        SELECT d3s1358.ID FROM d3s1358
+                        UNION ALL
+                        SELECT d5s818.ID FROM d5s818
+                        UNION ALL 
+                        SELECT d7s820.ID FROM d7s820
+                        UNION ALL
+                        SELECT d8s1179.ID FROM d8s1179
+                        UNION ALL 
+                        SELECT d13s317.ID FROM d13s317
+                        UNION ALL 
+                        SELECT d16s539.ID FROM d16s539
+                        UNION ALL
+                        SELECT d18s51.ID FROM d18s51
+                        UNION ALL
+                        SELECT d21s11.ID FROM d21s11")
+
+  dbWriteTable(dB_1, "tab", largedb, overwrite=TRUE)
+  ma <- dbGetQuery(dB_1, paste("SELECT ID, COUNT(*) AS MatchedAlleles
+                               FROM tab
+                               GROUP BY ID
+                               HAVING MatchedAlleles >=(", n_match,")"))
+ dbDisconnect(dB_1)
+ return(nrow(ma)/N)
+ 
+}
+
+```
+
+
+
+```{r, doSims}
+nsim <- 10000
+tmp <- vector("list", nsim)
+n_core <- 16
+
+N <- 1000
+p <- 0.1
+PopSource <- PopSource
+n_degrade <- 1
+n_match <- 13
+
+
+s.time <- system.time({
+  result <- unlist(pbmclapply(tmp, FUN = function(y) { 
+                             sims(N, p, PopSource,
+                                  n_match, n_degrade) },
+                                  mc.cores = n_core)) 
+  
+})
+
+m_result <- sum(result)/n_sim
+
+
+```

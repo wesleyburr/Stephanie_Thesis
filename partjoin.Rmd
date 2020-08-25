@@ -1,0 +1,218 @@
+---
+title: "innerpartialjoin"
+author: "Steph"
+date: "6/8/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+source("Functions/popconfigure.R")
+source("Functions/popdt.R")
+```
+
+```{r}
+#Read in excel file dataframe 
+PopSource <- read.csv("Pop_Source.csv", header=FALSE, stringsAsFactors=FALSE)
+PopSource <- popconfigure(PopSource)
+```
+
+
+
+```{r}
+partjoin <- function(DB1, DB2, nmatch){
+  loci <- c("CSF1PO","FGA", "TH01", "TPOX", "VWA", "D3S1358",
+            "D5S818", "D7S820", "D8S1179", "D13S317",
+            "D16S539", "D18S51", "D21S11")
+  
+  
+  colnames(DB1) <- c("offID", loci) 
+  colnames(DB2) <- c("nonoffID", loci)
+  
+  dB_1 <- dbConnect(RSQLite::SQLite(), ":memory:")
+  dbWriteTable(dB_1,"DB1", DB1, overwrite=TRUE)
+  dbWriteTable(dB_1, "DB2", DB2, overwrite = TRUE)
+  
+  CSF1PO <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                       FROM DB1
+                       INNER JOIN DB2
+                       ON DB1.CSF1PO = DB2.CSF1PO")
+  
+  FGA <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                    FROM DB1
+                    INNER JOIN DB2
+                    ON DB1.FGA = DB2.FGA")
+  
+  TH01 <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                     FROM DB1
+                     INNER JOIN DB2
+                     ON DB1.TH01 = DB2.TH01")
+  
+  TH01 <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                     FROM DB1
+                     INNER JOIN DB2
+                     ON DB1.TH01 = DB2.TH01")
+  
+  TPOX <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                     FROM DB1
+                     INNER JOIN DB2
+                     ON DB1.TPOX = DB2.TPOX")
+  
+  VWA <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                    FROM DB1
+                    INNER JOIN DB2
+                    ON DB1.VWA = DB2.VWA")
+  
+  D3S1358 <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                        FROM DB1
+                        INNER JOIN DB2
+                        ON DB1.D3S1358 = DB2.D3S1358")
+  
+  D5S818 <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                       FROM DB1
+                       INNER JOIN DB2
+                       ON DB1.D5S818 = DB2.D5S818")
+  
+  D7S820 <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                       FROM DB1
+                       INNER JOIN DB2
+                       ON DB1.D7S820 = DB2.D7S820")
+  
+  D8S1179 <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                        FROM DB1
+                        INNER JOIN DB2
+                        ON DB1.D8S1179 = DB2.D8S1179")
+  
+  D13S317 <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                        FROM DB1
+                        INNER JOIN DB2
+                        ON DB1.D13S317 = DB2.D13S317")
+  
+  D16S539 <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                        FROM DB1
+                        INNER JOIN DB2
+                        ON DB1.D16S539 = DB2.D16S539")
+  
+  D18S51 <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                       FROM DB1
+                       INNER JOIN DB2
+                       ON DB1.D18S51 = DB2.D18S51")
+  
+  D21S11 <- dbGetQuery(dB_1, "SELECT DB1.offID, DB2.nonoffID
+                       FROM DB1
+                       INNER JOIN DB2
+                       ON DB1.D21S11 = DB2.D21S11")
+  
+  
+  dbWriteTable(dB_1, "CSF1PO", CSF1PO, overwrite = TRUE)
+  dbWriteTable(dB_1, "FGA", FGA, overwrite = TRUE)
+  dbWriteTable(dB_1, "TH01", TH01, overwrite = TRUE)
+  dbWriteTable(dB_1, "TPOX", TPOX, overwrite = TRUE)
+  dbWriteTable(dB_1, "VWA", VWA, overwrite = TRUE)
+  dbWriteTable(dB_1, "D3S1358", D3S1358, overwrite = TRUE)
+  dbWriteTable(dB_1, "D5S818", D5S818, overwrite = TRUE)
+  dbWriteTable(dB_1, "D7S820", D7S820, overwrite = TRUE)
+  dbWriteTable(dB_1, "D8S1179", D8S1179, overwrite = TRUE)
+  dbWriteTable(dB_1, "D13S317", D13S317, overwrite = TRUE)
+  dbWriteTable(dB_1, "D16S539", D16S539, overwrite = TRUE)
+  dbWriteTable(dB_1, "D18S51", D18S51, overwrite = TRUE)
+  dbWriteTable(dB_1, "D21S11", D21S11, overwrite = TRUE)
+  
+  largedb <- dbGetQuery(dB_1, "SELECT * FROM CSF1PO
+                        UNION ALL 
+                        SELECT * FROM FGA
+                        UNION ALL
+                        SELECT * FROM TH01
+                        UNION ALL
+                        SELECT * FROM TPOX
+                        UNION ALL
+                        SELECT * FROM VWA
+                        UNION ALL
+                        SELECT * FROM D3S1358
+                        UNION ALL
+                        SELECT * FROM D5S818
+                        UNION ALL
+                        SELECT * FROM D7S820
+                        UNION ALL
+                        SELECT * FROM D8S1179
+                        UNION ALL
+                        SELECT * FROM D13S317
+                        UNION ALL
+                        SELECT * FROM D16S539
+                        UNION ALL
+                        SELECT * FROM D18S51
+                        UNION ALL
+                        SELECT * FROM D21S11")
+  
+  
+
+  dbWriteTable(dB_1, "largedb", largedb, overwrite = TRUE)        
+  ma <- dbGetQuery(dB_1, "SELECT offID, nonoffID, COUNT(*) as Matches
+                             FROM largedb
+                             WHERE offID != nonoffID
+                             GROUP BY offID, nonoffID
+                             HAVING Matches > 8
+                             ORDER BY Matches DESC")
+  dbWriteTable(dB_1, "ma", ma, overwrite = TRUE) 
+  
+ni <- (dbGetQuery(dB_1, "SELECT COUNT (*) as NINE FROM ma WHERE Matches == 9 "))[1,1]
+te <- (dbGetQuery(dB_1, "SELECT COUNT (*) as TEN FROM ma WHERE Matches == 10 "))[1,1]
+el <-  (dbGetQuery(dB_1, "SELECT COUNT (*) as ELEVEN FROM ma WHERE Matches == 11 "))[1,1]
+tw <- (dbGetQuery(dB_1, "SELECT COUNT (*) as TWELVE FROM ma WHERE Matches == 12 "))[1,1]
+th <- (dbGetQuery(dB_1, "SELECT COUNT (*) as THIRTEEN FROM ma WHERE Matches == 13 "))[1,1]
+
+
+vec <- c(ni, te, el, tw, th)
+  
+  return(vec)
+}
+```
+
+  ma<- dbGetQuery(dB_1, paste("SELECT offID, nonoffID, COUNT(*) as Matches
+                             FROM largedb
+                             WHERE offID != nonoffID
+                             GROUP BY offID, nonoffID
+                             HAVING Matches =(", nmatch,")
+                             ORDER BY Matches DESC"))
+
+
+```{r}
+nsims <- 10
+N <- 100
+p <- 0.5
+
+
+population <- popdt(N, PopSource)
+offenders <- sample_n(population, N*p)
+DB1 <- offenders
+DB2 <- offenders
+ 
+
+
+n.core <- 4
+tmp <- vector("list", nsims)
+
+time <- system.time({
+  results <- unlist(pbmclapply (tmp, FUN = function(y){
+                  partjoin(DB1 = offenders, DB2 = offenders, nmatch)},
+                  mc.cores = n.core))
+})
+
+
+result <-(matrix(results, nrow= nsims, ncol=5))
+#sum(results)/length(results)
+closeAllConnections()
+```
+
+
+```{r}
+x <-sample_n(population, 1)
+y <- sample_n(offenders,1)
+
+inner_join(offenders[, -1], offenders[, -1])
+```
+
+

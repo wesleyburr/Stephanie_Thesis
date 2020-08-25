@@ -1,0 +1,83 @@
+---
+title: "Balding(N,p,r)"
+author: "Steph"
+date: "5/19/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(parallel)
+library(profvis)
+library(data.table)
+library(prodlim)
+library(dplyr)
+library(sqldf)
+library(DBI)
+library(RSQLite)
+library(readxl)
+library(pbmcapply)
+```
+
+
+```{r}
+source("Functions/smatch.R")
+```
+
+
+```{r, doSims}
+n_sim <- 10^5
+tmp <- vector("list", n_sim)
+n_core <- 2
+N <- 10^6
+p <- 0.1
+m <- 10
+r <- 6
+s <- 10
+
+s.time <- system.time({
+  result <- unlist(pbmclapply(tmp, FUN = function(y) { 
+                             smatch(N, p, m, r, s) },
+                                  mc.cores = n_core)) 
+  
+})
+YesSim <- sum(result == 1)
+YesSim/length(result) ## just incase not all sims run, but if they do then length(results) = m * n_sim
+s.time
+
+closeAllConnections()
+```
+
+
+
+# # # # # SIMULATION 1 ::: P(O|G) # # # # # 
+
+### BALDING1A RESULTS### 
+N = 1e+07, p = 0.1  (m = 1)
+n_sim = 10,      YesSim/n_sim = 0.5
+n_sim = 100,     YesSim/n_sim = 0.41     time elapsed = 229.511  user time = 2363.408
+n_sim = 1000,    YesSim/n_sim = 0.337    time elapsed = 2200.891 user time = 25261.989
+n_sim = 10000,   YesSim/n_sim = 0.36     time elapsed = 21255.34 user time = 257439.10
+n_sim = 100000,  YesSim/n_sim = 0.36824  time elapsed = 203119.4 user time = 2501950.4
+
+
+### BALDING1B RESULTS### 
+N = 1e+07, p = 0.1, m = 10 
+n_sim = 10,     # results = 100      YesSim/n_sim = 0.36     time elapsed = 211.042  user time = 1216.846
+n_sim = 100,    # results = 1000     YesSim/n_sim = 0.397    time elapsed = 1604.808 user time = 14306.665
+n_sim = 1000,   # results = 10000    YesSim/n_sim = 0.3648   time elapsed = 14638.63 user time = 143110.56
+n_sim = 10000,  # results = 100000   YesSim/n_sim = 0.36833  time elapsed = 1384442.0 user time = 1384442.0 
+n_sim = 100000, # results = 1000000  YesSim/n_sim = 0.368654
+
+
+### BALDING1 RESULTS### 
+N = 1e+06, p = 0.1, m = 10 
+n_sim = 10,     # results = 100      YesSim/n_sim = 0.92
+n_sim = 100,    # results = 1000     YesSim/n_sim = 0.888
+n_sim = 1000,   # results = 10000    YesSim/n_sim = 0.9059
+n_sim = 10000,  # results = 100000   YesSim/n_sim = 0.90498
+n_sim = 100000, # results = 1000000  YesSim/n_sim = 0.904729
+

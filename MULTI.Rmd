@@ -1,0 +1,90 @@
+---
+title: "multi database"
+author: "Steph"
+date: "5/5/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(parallel)
+library(profvis)
+library(data.table)
+library(prodlim)
+library(dplyr)
+library(sqldf)
+library(DBI)
+library(RSQLite)
+library(readxl)
+library(pbmcapply)
+library(gtools)
+```
+
+```{r}
+source("Functions/chpt5 - multi database/licenseplates.R") ## less than 125000
+source("Functions/chpt5 - multi database/creditcard.R")  # less than 5^5
+source("Functions/chpt5 - multi database/IMEI.R") ## less than 5^5
+source("Functions/chpt5 - multi database/multidna.R") ## less than 10^6
+```
+
+SCENARIO 1:: (i.e we have a hypothesis)
+we have a DNA sample, and their ID, but we need more evidence. 
+how much evidence does this give us against the culprit found from the dna evidence?
+is this person in the other databases? they dont need to be in all of them
+
+
+
+
+
+
+
+SCENARIO 2:: (no hypothesis, just trawling)
+What if we dont have DNA sample, but we have a couple found at the crime scene. How many collisions are there within the guilty databases??
+
+```{r}
+
+N <- 1000
+r <- 6
+s <- 10
+ndegrade <- 3
+nmatch <- 6
+
+p <- 0.27 # plate 
+q <- 0.08  # credit 
+m <- 0.38 # phone
+
+
+  
+plate <- licenseplates(N)
+guiltyplate <- sample_n(plate, N*p)
+credit <- creditcard(N)
+guiltycredit <- sample_n(credit, N*q)
+IMEIdB <- IMEI(N)
+guiltyphone <- sample_n(IMEIdB, N*m)
+dna <- multidna(N, r, s, ndegrade, nmatch)
+colnames(dna) <- c("ID", "csID", "Matches")
+
+guiltyplates <- vector(length = nrow(dna))
+guiltycredits <- vector(length = nrow(dna))
+guiltyphones <- vector(length = nrow(dna))
+
+for(i in 1:nrow(dna)){
+guiltyplates[i] <- ifelse(dna[i,1] %in% guiltyplate[,1], "Yes", "No")
+guiltycredits[i] <- ifelse(dna[i,1] %in% guiltycredit[,1], "Yes", "No")
+guiltyphones[i] <- ifelse(dna[i,1] %in% guiltyphone[,1], "Yes", "No")
+
+
+}
+
+data.frame("ID" = dna[,1], "csID" = dna[,2], "License" = guiltyplates, "Phone" = guiltyphones, "Credit" = guiltycredits)
+```
+
+
+
+
+

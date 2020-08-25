@@ -1,0 +1,80 @@
+---
+title: "Balding2(N,p,r)"
+author: "Steph"
+date: "5/19/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(parallel)
+library(profvis)
+library(data.table)
+library(prodlim)
+library(dplyr)
+library(sqldf)
+library(DBI)
+library(RSQLite)
+library(readxl)
+library(pbmcapply)
+```
+
+```{r}
+source("Functions/nsmatch.R")
+```
+
+```{r, doSims}
+nsim <- 10^5
+tmp <- vector("list", nsim)
+n_core <- 14
+N <- 10^6
+p <- 0.1
+m <- 10
+r <- 6
+s <- 10
+
+s.time <- system.time({
+  result <- unlist(pbmclapply(tmp, FUN = function(y) { 
+                             nsmatch(N, p, m, r, s) },
+                                  mc.cores = n_core)) 
+  
+})
+YesSim <- sum(result)
+YesSim/length(result)
+s.time
+
+closeAllConnections()
+```
+
+
+# # # # # SIMULATION 2 ::: P(O|G^c) # # # # # 
+
+### BALDING2A RESULTS### 
+N = 1e+07, p = 0.1 ( m = 1)
+n_sim = 10,      YesSim/n_sim = 0.3      time elapsed = 123.204  user time = 546.953
+n_sim = 100,     YesSim/n_sim = 0.44     time elapsed = 1045.189 user time = 6931.444
+n_sim = 1000,    YesSim/n_sim = 0.378    time elapsed = 9694.802 user time = 72409.594
+n_sim = 10000,   YesSim/n_sim = 0.369    time elapsed = 96110.36  user time = 727237.69
+n_sim = 100000,  YesSim/n_sim = 0.3669   time elapsed = 1294371  user time = 9635277
+
+### BALDING2B RESULTS### 
+N = 1e+07, p = 0.1, m = 10 
+n_sim = 10,     # results = 100      YesSim/n_sim = 0.31      time elapsed = 2139.586 user time = 8337.929
+n_sim = 100,    # results = 1000     YesSim/n_sim = 0.361     time elapsed = 16903.44 user time = 102081.72
+n_sim = 1000,   # results = 10000    YesSim/n_sim = 0.3632    time elapsed = 160569.8 user time = 1018957.4
+n_sim = 10000,  # results = 100000   YesSim/n_sim =     time elapsed =  user time = 
+n_sim = 100000, # results = 1000000  YesSim/n_sim =     time elapsed =  user time = 
+
+### BALDING2B RESULTS### 
+N = 1e+06, p = 0.1, m = 10 
+n_sim = 10,     # results = 100      YesSim/n_sim =  0.53    time elapsed =  user time = 
+n_sim = 100,    # results = 1000     YesSim/n_sim =  0.529    time elapsed =  user time = 
+n_sim = 1000,   # results = 10000    YesSim/n_sim =  0.5433   time elapsed =  user time = 
+n_sim = 10000,  # results = 100000   YesSim/n_sim =  0.53858    time elapsed =  user time = 
+n_sim = 100000, # results = 1000000  YesSim/n_sim =  0.537462    time elapsed =  user time = 
+
+
+

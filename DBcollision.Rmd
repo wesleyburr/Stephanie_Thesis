@@ -1,0 +1,47 @@
+---
+title: "dbcollision"
+author: "Steph"
+date: "6/12/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+collisions in the offenders database. 
+
+
+```{r}
+source("Functions/DBcollision.R")
+```
+
+
+
+```{r}
+nsims <- 100
+N <- 10000
+p <- 1
+r <- 8
+s <- 12
+nmatch <- 6  # has to be less than or = to r 
+
+n.core <- 24
+
+tmp <- vector("list", nsims)
+
+time <- system.time({
+  results <- unlist(pbmclapply (tmp, FUN = function(y){
+                  DBcollision(N,p,r,s,nmatch)},
+                  mc.cores = n.core))
+})
+
+sink(file="output.txt", append = TRUE)
+sum(results)/length(results)
+paste(results, sep="", collapse = ", ")
+
+
+
+closeAllConnections()
+```
+
+```

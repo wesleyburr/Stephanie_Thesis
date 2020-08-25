@@ -1,0 +1,197 @@
+---
+title: "Convergence Plots"
+author: "Steph"
+date: "5/29/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(parallel)
+library(profvis)
+library(data.table)
+library(prodlim)
+library(dplyr)
+library(sqldf)
+library(DBI)
+library(RSQLite)
+library(readxl)
+library(pbmcapply)
+library(RDS)
+library(plotly)
+library(ggplot2)
+library(scatterplot3d)
+library(RColorBrewer)
+library(rgl)
+library(car)
+library(mgcv)
+```
+
+## rmp(N,r,s) 
+
+```{r}
+nsim = c(1, 10, 100, 1000, 10000)
+results1 = c(0, 0, 4e-6, 1.4e-6, 1.13e-6) # N = 10e4
+results2 = c(0, 2e-6, 6e-7, 1.1e-6, 9.63e-7) # N = 10e5
+results3 = c(2e-6, 7e-7, 8.5e-7, 9.85e-7, 9.918e-7) # N = 10e6
+results4 = c(7e-7, 8.8e-7, 1.037e-6, 9.964e-7, 1.00467e-6) # N = 10e7
+results5 = c(9.5e-7, 1.01e-6, 1.0002e-6, 1.00336e-6, 9.98758e-7) # N - 10e8
+
+data <- data.frame(nsim, results1, results2, results3, results4, results5)
+fig <- plot_ly(data, x = ~nsim)
+fig <- fig %>% add_trace(y = ~results1, name = 'N = 10^4', type = 'scatter', mode ='lines+markers')
+fig <- fig %>% add_trace(y = ~results2, name = 'N = 10^5', type = 'scatter', mode ='lines+markers')
+fig <- fig %>% add_trace(y = ~results3, name = 'N = 10^6', type = 'scatter', mode ='lines+markers')
+fig <- fig %>% add_trace(y = ~results3, name = 'N = 10^6', type = 'scatter', mode ='lines+markers')
+fig <- fig %>% add_trace(y = ~results5, name = 'N = 10^8', type = 'scatter', mode ='lines+markers')
+fig <- fig %>% layout(title = "rmp(N,r,s) Simulation Results",
+    xaxis = list(title="Number of Simulations"),
+    yaxis = list(title = "Result", exponentformat = "E"),
+    autosize = F, width = 1000, height = 500, margin = list(
+  l = 50,
+  r = 50,
+  b = 100,
+  t = 100,
+  pad = 4
+))
+
+fig
+#htmlwidgets::saveWidget(fig, "index.html")
+#setwd("/home/steph/Databases/DNA_prof_match/Plots")
+#png(filename = "rmp(N,r,s)plot1.png", height = 1000, width = 1000)
+```
+
+
+
+## uniq(N,r,s)
+
+```{r}
+nsim = c(1, 10, 10^2, 10^3, 10^4, 10^5, 10^6)
+result1a <- c(1, 1, 0.98, 0.993, 0.9925, 0.99195, 0.991792)
+result1b <- 0.9949626
+result2a <- c(1, 0.6, 0.56, 0.577, 0.5825, 0.5923, 0.589828)
+result2b <- 0.6061262
+
+
+data <- data.frame(nsim, result1a, result2a)
+fig <- plot_ly(data, x = ~nsim)
+fig <- fig %>% add_trace(y = ~result1a, name = 'N = 10^2 Simulation', type = 'scatter', mode ='lines+markers')
+fig <- fig %>% add_segments(x = 0, xend = 10^6, y = 0.9949626, yend = 0.9949626, name = 'N = 10^2 Theoretical', mode= "lines")
+fig <- fig %>% layout(
+  title = "uniq(N,r,s) Simulation Results",
+    xaxis = list(title="Number of Occurences"),
+    yaxis = list(title = "Result", exponentformat = "E")
+    )
+fig
+
+data <- data.frame(nsim, result1a, result2a)
+fig1 <- plot_ly(data, x = ~nsim)
+fig1 <- fig1 %>% add_trace(y = ~result2a, name = 'N = 10^3 Simulation', type = 'scatter', mode ='lines+markers')
+fig1 <- fig1 %>% add_segments(x = 0, xend = 10^6, y = 0.6061262, yend = 0.6061262, name = 'N = 10^3 Theoretical', mode='lines')
+fig1 <- fig1 %>% layout(
+  title = "uniq(N,r,s) Simulation Results",
+    xaxis = list(title="Number of Occurences"),
+    yaxis = list(title = "Result", exponentformat = "E")
+    )
+fig1
+
+```
+
+## collisions
+```{r}
+#result <- c(0, 2e-4, 1e-4, 9.1e-5, 9.91e-5, 6e-4, 0.00094, 0.00092, 0.0009138, 0.00089921, 0.0021, 0.008934, 0.0090139, 0.00901151, 0.009006716, 0.090031, 0.090095, 0.08995394, 0.0899198, 0.09000897) 
+
+
+
+#  p = 0.1/0.9, N= 10e4
+nsim = c(1, 10, 10^2, 10^3, 10^4)
+results1 = c(6e-4, 0.00094, 0.00092, 0.0009138, 0.00089921) # N = 10e4
+data <- data.frame(nsim, results1)
+fig1 <- plot_ly(data, x = ~nsim, y = ~results1, name = 'N = 10^3', type = 'scatter', mode ='lines+markers')
+fig1 <- fig1 %>% layout(
+  title = "rmp(N,r,s) Simulation Results, p = 0.1, N = 10e4",
+    xaxis = list(title="Number of Simulations"),
+    yaxis = list(title = "Result", exponentformat = "E"),
+   autosize = F, width = 1000, height = 500, margin = list(l=50,r=50,b=100,t=100, pad =4)
+    )
+fig1
+
+
+#p = 0.2 / 0.8, N= 10e3
+nsim = c(1, 10, 10^2, 10^3, 10^4)
+results = c(0, 1e-4, 0.00016, 0.000163, 0.0001648) # N = 10e3
+
+
+data <- data.frame(nsim, results)
+fig <- plot_ly(data, x = ~nsim, y = ~results, name = 'N = 10^3', type = 'scatter', mode ='lines+markers')
+fig <- fig %>% layout(
+  title = "rmp(N,r,s) Simulation Results, p = 0.2, N = 10e3 ",
+    xaxis = list(title="Number of Simulations"),
+    yaxis = list(title = "Result", exponentformat = "E"),
+   autosize = F, width = 1000, height = 500, margin = list(l=50,r=50,b=100,t=100, pad =4)
+    )
+fig
+```
+
+
+
+
+## Balding1(N,p,m,r,s)
+
+```{r}
+Np = c(10, 10^2, 10^3, 10^4, 10^5, 10^6, 10^7)
+results = c(0.99999, 0.9999, 0.9990005, 0.9900498, 0.9048374, 0.3678793, 4.53997e-5) 
+
+
+data <- data.frame(Np, results)
+fig <- plot_ly(data, x = ~Np)
+fig <- fig %>% add_trace(y = ~results, name = 'Results', type = 'scatter', mode ='lines+markers')
+
+fig <- fig %>% layout(title = "P(O|G) Theoretical Results",
+    xaxis = list(title="Size of Database"),
+    yaxis = list(title = "Result", exponentformat = "E"),
+    autosize = F, width = 1000, height = 500, margin = list(
+  l = 50,
+  r = 50,
+  b = 100,
+  t = 100,
+  pad = 4
+))
+
+fig
+#htmlwidgets::saveWidget(fig, "index.html")
+#setwd("/home/steph/Databases/DNA_prof_match/Plots")
+#png(filename = "rmp(N,r,s)plot1.png", height = 1000, width = 1000)
+```
+
+
+```{r}
+Np = c(10, 10^2, 10^3, 10^4, 10^5)
+results = c(0.36, 0.397, 0.3648, 0.36833, 0.368654) 
+
+
+data <- data.frame(Np, results)
+fig <- plot_ly(data, x = ~Np)
+fig <- fig %>% add_trace(y = ~results, name = 'Results', type = 'scatter', mode ='lines+markers')
+
+fig <- fig %>% layout(title = "P(O|G) Simulation Results",
+    xaxis = list(title="Number of Results"),
+    yaxis = list(title = "Result", exponentformat = "E"),
+    autosize = F, width = 1000, height = 500, margin = list(
+  l = 50,
+  r = 50,
+  b = 100,
+  t = 100,
+  pad = 4
+))
+
+fig
+#htmlwidgets::saveWidget(fig, "index.html")
+#setwd("/home/steph/Databases/DNA_prof_match/Plots")
+#png(filename = "rmp(N,r,s)plot1.png", height = 1000, width = 1000)
+```
+
+
